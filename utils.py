@@ -83,3 +83,7 @@ def log(*args, **kwargs):
         log_message = datetime.now().strftime(f'[Kernel][%Y-%m-%d %H:%M:%S] {message}') 
         os.system(f'echo \"{log_message}\"')
     print(*args, **kwargs)
+    
+
+def prefix_keys(od, prefix):
+    return OrderedDict([(f'{prefix}{k}', v) for k, v in od.items()])
