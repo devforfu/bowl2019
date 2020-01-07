@@ -1,12 +1,12 @@
 import numpy as np
+import pandas as pd
+import scipy
 from numba import jit 
 
 @jit
 def qwk(a1, a2, max_rat=3):
-    assert(len(a1) == len(a2))
-    a1 = np.asarray(a1, dtype=int)
-    a2 = np.asarray(a2, dtype=int)
-
+    assert len(a1) == len(a2)
+    
     hist1 = np.zeros((max_rat + 1, ))
     hist2 = np.zeros((max_rat + 1, ))
 
@@ -26,3 +26,35 @@ def qwk(a1, a2, max_rat=3):
 
     return 1 - o / e
 
+
+class RegressionCappa:
+    def __init__(self, bounds):
+        self.bounds = bounds
+    def __call__(self, y_true, y_pred):
+        y_rounded = round_regressor_predictions(y_pred, self.bounds)
+        y_true = np.asarray(y_true, dtype=int)
+        y_rounded = np.asarray(y_rounded, dtype=int)
+        metric = qwk(y_true, y_rounded)
+        return metric
+    def lightgbm(self, y_true, y_pred):
+        return 'cappa', self(y_true, y_pred), True
+    
+    
+def round_regressor_predictions(preds, coefs):
+    x = preds.copy()
+    for i, (lo, hi) in enumerate(zip(coefs[:-1], coefs[1:])):
+        x[(x > lo) & (x <= hi)] = i
+    return x
+
+
+def optimize_rounding_bounds(X, y):
+    def _loss(coef):
+        buckets = pd.cut(X, [-np.inf] + list(np.sort(coef)) + [np.inf], labels=[0, 1, 2, 3])
+        return -qwk(y, buckets)
+    
+    init_coef = [0.5, 1.5, 2.5]
+    opt_coef = scipy.optimize.minimize(_loss, init_coef, method='nelder-mead')
+    optimized = opt_coef['x']
+    return [-np.inf] + optimized.tolist() + [np.inf]
+
+    
