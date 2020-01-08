@@ -87,3 +87,17 @@ def log(*args, **kwargs):
 
 def prefix_keys(od, prefix):
     return OrderedDict([(f'{prefix}{k}', v) for k, v in od.items()])
+
+
+def now(utc=True, fmt='%a_%d_%h_%Y__%H_%M'):
+    now_fn = datetime.utcnow if utc else datetime.now
+    now_ts = now_fn()
+    return now_ts.strftime(fmt)
+
+
+def filter_nan(x, fallback=0):
+    return fallback if np.isnan(x) else x
+
+
+def guard_false(func, x, fallback=0):
+    return func(x) if x else fallback

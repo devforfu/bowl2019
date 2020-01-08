@@ -1,3 +1,4 @@
+import json
 import re
 from collections import defaultdict, Counter, OrderedDict
 from multiprocessing import cpu_count
@@ -46,8 +47,8 @@ def add_cyclical(data, prefix, features=CYCLIC_FEATURES, modulo=None):
 # -------------------------------------
 
 class BaseFeatures:
-    def __init__(self, meta):
-        self.init(meta)
+    def __init__(self, meta, **params):
+        self.init(meta, **params)
         
 class CountersMixin:
     def update_counters(self, cnt, sess, column):
@@ -57,7 +58,7 @@ class CountersMixin:
                 cnt[k] += v
                 
 class CountingFeatures(BaseFeatures, CountersMixin):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.cnt_title_event_code = U.init_dict(meta.title_event_code)
         self.cnt_title = U.init_dict(meta.title)
         self.cnt_event_code = U.init_dict(meta.event_code)
@@ -74,7 +75,7 @@ class CountingFeatures(BaseFeatures, CountersMixin):
                 *self.cnt_event_code.items(),
                 *self.cnt_event_id.items(),
                 *self.cnt_activities.items()])
-            features.update([(f'cnt_{k}', v) for k, v in counters.items()])
+            features.update(counters)
         self.update_counters(self.cnt_title_event_code, session, 'title_event_code')
         self.update_counters(self.cnt_title, session, 'title')
         self.update_counters(self.cnt_event_code, session, 'event_code')
@@ -82,10 +83,10 @@ class CountingFeatures(BaseFeatures, CountersMixin):
         if self.last_activity is None or self.last_activity != info.session_type:
             self.cnt_activities[info.session_type] += 1
             self.last_activity = info.session_type
-        return features
+        return U.prefix_keys(features, 'cnt_')
     
 class PerformanceFeatures(BaseFeatures):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.acc_accuracy = 0
         self.acc_accuracy_group = 0
         self.acc_correct_attempts = 0
@@ -127,27 +128,32 @@ class PerformanceFeatures(BaseFeatures):
             
         self.acc_actions += len(session)
         
+        if info.should_include:
+            # hack to make sure that target variable is not included into features
+            accuracy_group = features.pop('accuracy_group')
+            features = U.prefix_keys(features, 'perf_')
+            features['accuracy_group'] = accuracy_group
+            
         return features
     
 class CyclicFeatures(BaseFeatures):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.acc = defaultdict(list)
     
     def extract(self, session, info, meta):
         features = OrderedDict()
-        if not info.should_include:
-            return features
-        for dt in CYCLIC_FEATURES:
-            for angle in ('sin', 'cos'):
-                key = f'ts_{dt}_{angle}'
-                acc = self.acc
-                features[f'{key}_mean'] = np.mean(acc[key]) if acc[key] else 0
-                features[f'{key}_std'] = np.std(acc[key]) if acc[key] else 0
-                acc[key] += session[key].tolist()
-        return features
+        if info.should_include:           
+            for dt in CYCLIC_FEATURES:
+                for angle in ('sin', 'cos'):
+                    key = f'ts_{dt}_{angle}'
+                    acc = self.acc
+                    features[f'{key}_mean'] = np.mean(acc[key]) if acc[key] else 0
+                    features[f'{key}_std'] = np.std(acc[key]) if acc[key] else 0
+                    self.acc[key] += session[key].tolist()
+        return U.prefix_keys(features, 'cycl_')
 
 class TimestampFeatures(BaseFeatures, CountersMixin):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.cnt_month = U.init_dict([7, 8, 9, 10])
         self.cnt_dayofweek = U.init_dict(range(7))
         self.cnt_dayofmonth = U.init_dict(range(1, 32))
@@ -173,7 +179,7 @@ class TimestampFeatures(BaseFeatures, CountersMixin):
         return U.prefix_keys(features, 'ts_')
 
 class VarietyFeatures(BaseFeatures, CountersMixin):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.cnt_title_event_code = U.init_dict(meta.title_event_code)
         self.cnt_title = U.init_dict(meta.title)
         self.cnt_event_code = U.init_dict(meta.event_code)
@@ -195,6 +201,57 @@ class VarietyFeatures(BaseFeatures, CountersMixin):
         
         return U.prefix_keys(features, 'var_')
     
+class EventDataFeatures(BaseFeatures):
+    def init(self, meta):
+        self.rounds = []
+        self.max_round = 0
+        self.coord_x = []
+        self.coord_y = []
+        self.cnt_media = U.init_dict(['unknown', 'animation', 'audio'])
+        
+    def extract(self, session, info, meta):
+        features = OrderedDict()
+        
+        if info.should_include:
+            features['max_round'] = self.max_round
+            features['avg_round'] = U.guard_false(np.mean, self.rounds)
+            features['std_round'] = U.guard_false(np.std, self.rounds)
+            features['avg_coord_x'] = U.guard_false(np.mean, self.coord_x)
+            features['avg_coord_y'] = U.guard_false(np.mean, self.coord_y)
+            features['std_coord_x'] = U.guard_false(np.std, self.coord_x)
+            features['std_coord_y'] = U.guard_false(np.std, self.coord_y)
+            features.update(U.prefix_keys(self.cnt_media.copy(), 'media_'))
+        
+        data = pd.io.json.json_normalize(session.event_data.apply(json.loads))
+        self.update_round(data)
+        self.update_coord(data)
+        self.update_media(data)
+        
+        return U.prefix_keys(features, 'event_')
+    
+    def update_round(self, data):
+        col = 'round'
+        if col not in data:
+            return
+        rounds = data[col].fillna(0)
+        self.max_round = max(self.max_round, rounds.max())
+        self.rounds.extend(rounds.tolist())
+                     
+    def update_coord(self, data):
+        col_x = 'coordinates.x'
+        col_y = 'coordinates.y'
+        if col_x not in data and col_y not in data:
+            return
+        self.coord_x.extend(data[col_x].fillna(0).astype(int).tolist())
+        self.coord_y.extend(data[col_y].fillna(0).astype(int).tolist())
+        
+    def update_media(self, data):
+        col = 'media_type'
+        if col not in data:
+            return
+        cnt = data[col].fillna('unknown').value_counts().to_dict()
+        self.cnt_media.update(cnt)
+
 # -------------------------
 # Features extraction tools
 # -------------------------
@@ -289,7 +346,7 @@ def add_user_wise_features(dataset, meta, pbar=True):
     events = [f'cnt_{code}' for code in meta.event_code]
     grouped = dataset.groupby('installation_id')
     dataset['user_session_cnt'] = transform(grouped, 'cnt_Clip', 'count')
-    dataset['user_duration_mean'] = transform(grouped, 'duration_mean', 'mean')
+    dataset['user_duration_mean'] = transform(grouped, 'perf_duration_mean', 'mean')
     dataset['user_title_nunique'] = transform(grouped, 'session_title', 'nunique')
     dataset['user_events_sum'] = dataset[events].sum(axis=1)
     dataset['user_events_mean'] = transform(grouped, 'user_events_sum', 'mean')
