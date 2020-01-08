@@ -1,5 +1,5 @@
 installation_id,accuracy_group
-00abaee7,3
+00abaee7,2
 01242218,3
 017c5718,3
 01a44906,3
@@ -15,7 +15,7 @@ installation_id,accuracy_group
 048e7427,3
 04a7bc3f,1
 04d31500,1
-0500e23b,3
+0500e23b,2
 0512bf0e,2
 0525589b,3
 05488e26,2
@@ -23,7 +23,7 @@ installation_id,accuracy_group
 05b82cf5,2
 05e17e19,2
 0617500d,3
-068ae11f,2
+068ae11f,1
 0754f13b,1
 07749e99,3
 08611cc8,1
@@ -45,7 +45,7 @@ installation_id,accuracy_group
 0dd670e9,1
 0de6863d,3
 0e514571,3
-0e718764,2
+0e718764,1
 0ea27b66,2
 0f584054,3
 0f7116a6,3
@@ -88,7 +88,7 @@ installation_id,accuracy_group
 18569185,3
 18a43ba3,0
 18dd112c,3
-1962067f,3
+1962067f,2
 19b97a3f,3
 1a153269,2
 1a1977ce,3
@@ -121,7 +121,7 @@ installation_id,accuracy_group
 20ade427,1
 20d2e0ab,3
 210c8bc0,2
-225505b3,2
+225505b3,1
 225e3787,2
 229464d8,3
 229918c1,1
@@ -131,7 +131,7 @@ installation_id,accuracy_group
 253ac98f,2
 25504d06,3
 2569a283,1
-25914d08,2
+25914d08,1
 25faffc4,2
 269ac751,3
 26ae75a7,3
@@ -156,7 +156,7 @@ installation_id,accuracy_group
 2ae3169a,2
 2ae57465,1
 2af16b0d,3
-2b05a2ce,1
+2b05a2ce,0
 2b14f163,2
 2b1dfd68,3
 2b2d47da,3
@@ -169,7 +169,7 @@ installation_id,accuracy_group
 2d4207d2,1
 2da73a3a,3
 2db60743,1
-2db7ae36,2
+2db7ae36,1
 2dbf3f3d,2
 2e1eb9be,3
 2e5371cc,3
@@ -177,7 +177,7 @@ installation_id,accuracy_group
 2e8174d0,3
 2f14f89e,2
 2f5ef5e1,3
-2f9de8b5,1
+2f9de8b5,0
 2fd070b1,1
 30c40fff,3
 30d3ebf6,1
@@ -197,7 +197,7 @@ installation_id,accuracy_group
 34a8a031,3
 350caf20,2
 358017fd,1
-36025ee6,2
+36025ee6,1
 364f0cb7,3
 3668cc54,3
 367f4a5c,2
@@ -207,7 +207,7 @@ installation_id,accuracy_group
 374460a9,1
 37a73d25,3
 37b2ecaa,0
-37c1b132,3
+37c1b132,2
 37ca2bf0,2
 37db1bb3,3
 37de20cb,1
@@ -229,7 +229,7 @@ installation_id,accuracy_group
 3cb30295,0
 3d214090,3
 3d74fc27,2
-3dddb6b4,1
+3dddb6b4,0
 3e7ccccd,3
 3f3e32f7,3
 40ee2242,3
@@ -243,9 +243,9 @@ installation_id,accuracy_group
 42cb86bc,1
 4360a0a2,3
 43bd1ec6,2
-43c57f97,3
+43c57f97,2
 43c76004,3
-43e459b7,3
+43e459b7,2
 448282ef,2
 44b8eb05,0
 44d7fd71,1
@@ -256,7 +256,7 @@ installation_id,accuracy_group
 46486950,3
 46da14b7,3
 47846823,2
-4794785e,3
+4794785e,2
 47c5cd9d,3
 480bfe4f,3
 48166507,1
@@ -280,9 +280,9 @@ installation_id,accuracy_group
 4c3b1ab4,3
 4c90f5cf,2
 4cd1add0,3
-4d3008d8,3
+4d3008d8,2
 4da8008a,1
-4dd9451a,2
+4dd9451a,1
 4dea7fc7,2
 4e4bd932,2
 4e527a82,2
@@ -351,11 +351,11 @@ installation_id,accuracy_group
 5e75d818,3
 5f52cd36,2
 5f70abd1,0
-5f8d5cd7,3
+5f8d5cd7,2
 5f9c37c8,3
 60152ce4,3
 601a8b2d,2
-606cf51e,3
+606cf51e,2
 6074418e,2
 60d239c2,1
 60d98685,3
@@ -372,8 +372,8 @@ installation_id,accuracy_group
 6586f9f0,2
 65b92dd5,2
 65bbd37f,1
-65fd1600,3
-66422987,2
+65fd1600,2
+66422987,1
 66854b19,3
 66e692ff,2
 6701a905,1
@@ -386,7 +386,7 @@ installation_id,accuracy_group
 68f9a1a3,2
 68fcbd36,0
 69164a28,2
-695e3677,2
+695e3677,1
 69861c96,2
 69aa9d69,3
 69e79a9d,2
@@ -401,8 +401,8 @@ installation_id,accuracy_group
 6cd8f2d8,3
 6cdc30a1,3
 6d0059c6,2
-6d15f7d6,2
-6d2b5fde,3
+6d15f7d6,1
+6d2b5fde,2
 6d647776,2
 6d819195,2
 6eadd18e,1
@@ -425,7 +425,7 @@ installation_id,accuracy_group
 71da16a1,2
 71e82b16,1
 723cb47c,3
-7262504d,3
+7262504d,2
 727c6239,3
 730ff2d5,1
 735a0533,1
@@ -450,7 +450,7 @@ installation_id,accuracy_group
 7973812a,3
 7973d319,1
 79a46c4b,1
-79fa657d,3
+79fa657d,2
 7a1eba1a,3
 7a31ed2b,2
 7a33564c,3
@@ -503,19 +503,19 @@ installation_id,accuracy_group
 85a36690,2
 85d2f821,2
 869ec6d3,3
-86a08ba0,2
+86a08ba0,1
 8712e11d,1
 876d9d93,2
 876e4c1c,3
 879f6a58,2
 87b899d9,1
 87c15b6f,1
-87f58bfa,2
+87f58bfa,1
 88514bde,2
 8854354f,3
 886cebc2,1
 88b74185,2
-88f5c349,3
+88f5c349,2
 891c55ba,3
 893772d5,3
 89905528,3
@@ -523,7 +523,7 @@ installation_id,accuracy_group
 89bda256,3
 8a3aca1f,3
 8ace5f29,2
-8ae49f4c,0
+8ae49f4c,1
 8aed5ab4,1
 8b008e24,0
 8b29ddb4,3
@@ -560,7 +560,7 @@ installation_id,accuracy_group
 915c809a,3
 91796a02,2
 91d4699e,2
-92468e29,2
+92468e29,1
 92d63f0f,3
 92e5a83a,1
 9323c154,3
@@ -581,7 +581,7 @@ installation_id,accuracy_group
 965c5adb,3
 96a7f636,0
 96f57ec6,3
-9701ffb5,2
+9701ffb5,1
 972c2d7f,2
 97501794,1
 97f14e50,1
@@ -627,7 +627,7 @@ a002f1ac,2
 a07f6fc5,3
 a0808b82,1
 a0cc50c3,1
-a11fe7b5,2
+a11fe7b5,1
 a1491477,2
 a20e6921,3
 a21c8e70,3
@@ -650,7 +650,7 @@ a702d1c5,1
 a71b99a6,3
 a723a382,3
 a788da19,2
-a83e60be,2
+a83e60be,1
 a8668fb6,2
 a87db7ff,1
 a9190917,3
@@ -686,7 +686,7 @@ afb1f807,2
 aff5e5ee,2
 b024bf05,3
 b04d8f0c,0
-b0efc6f4,2
+b0efc6f4,1
 b1bb8dd0,3
 b1ce5ee9,2
 b20c5326,1
@@ -713,12 +713,12 @@ b5bb257a,3
 b5be8f08,3
 b5e21f0b,2
 b68a3662,3
-b6a4854f,2
+b6a4854f,1
 b6b80f42,3
 b6c3e1ab,2
 b7adc30a,2
 b7ce52b8,3
-b7ffd685,3
+b7ffd685,2
 b84e696a,3
 b8ae746c,3
 b8b6e81e,1
@@ -800,7 +800,7 @@ cd389d57,2
 cda0fd9b,0
 cdda168a,2
 ce08e98b,0
-cec7185c,3
+cec7185c,2
 cf22f7b2,1
 cf434979,2
 cfa3af82,0
@@ -817,7 +817,7 @@ d1b7c089,3
 d1e3bd8c,2
 d1e82789,3
 d277cc27,2
-d3167e9d,2
+d3167e9d,1
 d32ee860,3
 d33c3eeb,2
 d373ded5,3
@@ -856,7 +856,7 @@ dc1082c4,3
 dc11ffb1,2
 dc786a89,3
 dcb34a93,1
-dd3caf14,3
+dd3caf14,2
 dd6867df,3
 dd9a2277,1
 ddb6f6f9,2
@@ -875,14 +875,14 @@ e0e41475,2
 e0f35499,0
 e1022480,0
 e1171430,1
-e12d2470,1
+e12d2470,0
 e158441d,2
 e1a319f5,3
 e1a3b275,1
 e1c0ba22,0
 e1c50806,1
 e1c81090,2
-e2246114,3
+e2246114,2
 e25c4a14,3
 e27072f1,3
 e2843455,2

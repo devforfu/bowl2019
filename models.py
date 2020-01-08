@@ -136,6 +136,26 @@ MODEL_CONFIG = dict(
             verbose=100,
             categorical_feature='auto'
         )
+    ),
+    lightgbm_random=dict(
+        model_params=dict(
+            n_estimators=5000,
+            max_depth=15,
+            boosting_type='gbdt',
+            metric='rmse',
+            objective='regression',
+            learning_rate=0.003,
+            subsample=0.75,
+            subsample_freq=1,
+            feature_fraction=0.6,
+            lambda_l1=1,
+            lambda_l2=1
+        ),
+        fit_params=dict(
+            early_stopping_rounds=200,
+            verbose=200,
+            categorical_feature='auto'
+        )
     )
 )
 
@@ -144,5 +164,5 @@ def get_default_config(name):
     return MODEL_CONFIG[name]
 
 def get_model_class(name):
-    if name == 'lightgbm': return LightGBM
+    if name.startswith('lightgbm'): return LightGBM
     raise ValueError(f'unknown model class: {name}')
