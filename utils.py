@@ -101,3 +101,42 @@ def filter_nan(x, fallback=0):
 
 def guard_false(func, x, fallback=0):
     return func(x) if x else fallback
+
+
+def set_nested(d, key, value, sep='.'):
+    if sep not in key:
+        d[key] = value
+    else:
+        *keys, last = key.split(sep)
+        for part in keys:
+            if part not in d:
+                raise KeyError(f'cannot resolve key: {key}')
+            d = d[part]
+        d[last] = value
+
+
+def get_nested(d, key, sep='.'):
+    if sep not in key:
+        return d[key]
+    else:
+        value = d
+        for part in key.split(sep):
+            if part not in d:
+                raise KeyError(f'cannot resolve key: {key}')
+            value = value[part]
+        return value
+    
+    
+def dict_format(d, joined=', '):
+    formatted = []
+    for key, value in d.items():
+        if isinstance(value, (float, np.float16, np.float32, np.float64)):
+            fmt = f'{value:.4f}'
+        elif isinstance(value, (int, np.int16, np.int32, np.int64)):
+            fmt = f'{value:d}'
+        else:
+            fmt = str(value)
+        formatted.append(f'{key}={fmt}')
+    if joined is not None:
+        formatted = joined.join(formatted)
+    return formatted

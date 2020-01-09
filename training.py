@@ -31,6 +31,9 @@ class LightGBM:
             assert list(X.columns) == self.features, 'Features do not match!'
         return self.model.predict(X)
     @property
+    def has_feature_importance(self):
+        return True
+    @property
     def feature_importances(self):
         feat_imp = pd.Series(OrderedDict(
             zip(self.features, self.model.feature_importances_)))
@@ -73,6 +76,54 @@ def train(dataset, features, reg_metric, algo='lightgbm', n_folds=5, config=None
     return U.named_tuple('Result', models=models, cv=cv, oof=oof, fi=feat_imp)
 
 
+class EnsembleTrainer:
+    def __init__(self, eval_metric='cappa', cv_metrics=None, algo='lightgbm'):
+        self.eval_metric = eval_metric
+        self.cv_metrics = cv_metrics or {}
+        self.algo = algo
+        
+    def train(self, dataset, features, fold, 
+              target='accuracy_group', grouping='installation_id', 
+              config=None):
+        
+        assert target not in features
+        assert grouping in dataset or grouping is None 
+        
+        groups = dataset[grouping]
+        X = dataset[features]
+        y = dataset[target]
+        model_cls = get_model_class(self.algo)
+        n_folds = fold.get_n_splits()
+        
+        models = []
+        feat_imp = np.zeros(len(features), dtype=np.float32)
+        oof = np.zeros(X.shape[0], dtype=np.float32)
+        cv = OrderedDict()
+        
+        for i, (trn_idx, val_idx) in enumerate(fold.split(X, y, groups), 1):
+            U.log(f'Running k-fold {i} of {n_folds}')
+            x_trn, y_trn = X.iloc[trn_idx], y.iloc[trn_idx]
+            x_val, y_val = X.iloc[val_idx], y.iloc[val_idx]
+            model = model_cls(config or get_default_config(self.algo))
+            model.fit(train_data=(x_trn, y_trn), 
+                      valid_data=(x_val, y_val), 
+                      metric=self.eval_metric)
+            oof[val_idx] = model.predict(x_val)
+            for name, metric in self.cv_metrics.items():
+                cv[f'cv_{name}_{i}'] = metric(y_val, oof[val_idx])
+            models.append(model)
+            if model.has_feature_importance:
+                feat_imp += model.feature_importances.values
+                
+        if cv:
+            U.log('Fold evaluation results:')
+            U.log(U.dict_format(cv))
+
+        feat_imp /= n_folds
+        feat_imp = pd.Series(OrderedDict(zip(features, feat_imp)))
+        return U.named_tuple('Result', models=models, cv=cv, oof=oof, fi=feat_imp)
+
+    
 # -----------
 # Predictions
 # -----------
@@ -140,8 +191,9 @@ MODEL_CONFIG = dict(
 )
 
 def get_default_config(name):
+    from copy import deepcopy
     assert name in MODEL_CONFIG, f'Config entry is not found: {name}'
-    return MODEL_CONFIG[name]
+    return deepcopy(MODEL_CONFIG[name])
 
 def get_model_class(name):
     if name == 'lightgbm': return LightGBM
