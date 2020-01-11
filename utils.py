@@ -1,4 +1,5 @@
 import os
+import re
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 from itertools import chain
@@ -140,3 +141,11 @@ def dict_format(d, joined=', '):
     if joined is not None:
         formatted = joined.join(formatted)
     return formatted
+
+
+def match_cols(cols, regex):
+    return [col for col in cols if re.match(regex, col)]
+
+
+def starts_with(cols, prefix): 
+    return match_cols(cols, f'^{prefix}')
