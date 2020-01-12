@@ -208,6 +208,15 @@ class EventDataFeatures(BaseFeatures):
         self.coord_x = []
         self.coord_y = []
         self.cnt_media = U.init_dict(['unknown', 'animation', 'audio'])
+        self.cnt_source = U.init_dict([
+            '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', 
+            '7.0', '8.0', '9.0', '10.0', '11.0', '12.0',
+            'resources', 'scale', 'left', 'middle', 'right', 
+            'Lightest', 'Heavy', 'Heaviest', 'N/A'
+        ])
+        self.cnt_level = U.init_dict(range(6))
+        self.cnt_size = U.init_dict(range(7))
+        self.cnt_weight = U.init_dict(range(13))
         
     def extract(self, session, info, meta):
         features = OrderedDict()
@@ -216,16 +225,27 @@ class EventDataFeatures(BaseFeatures):
             features['max_round'] = self.max_round
             features['avg_round'] = U.guard_false(np.mean, self.rounds)
             features['std_round'] = U.guard_false(np.std, self.rounds)
+            features['n_coord_x'] = len(self.coord_x)
+            features['n_coord_y'] = len(self.coord_y)
             features['avg_coord_x'] = U.guard_false(np.mean, self.coord_x)
             features['avg_coord_y'] = U.guard_false(np.mean, self.coord_y)
             features['std_coord_x'] = U.guard_false(np.std, self.coord_x)
             features['std_coord_y'] = U.guard_false(np.std, self.coord_y)
+            features['media_var'] = sum([0 if not v else 1 for v in self.cnt_media.values()])
             features.update(U.prefix_keys(self.cnt_media.copy(), 'media_'))
+            features.update(U.prefix_keys(self.cnt_source.copy(), 'source_'))
+            features.update(U.prefix_keys(self.cnt_level.copy(), 'level_'))
+            features.update(U.prefix_keys(self.cnt_size.copy(), 'size_'))
+            features.update(U.prefix_keys(self.cnt_weight.copy(), 'weight_'))
         
         data = pd.io.json.json_normalize(session.event_data.apply(json.loads))
         self.update_round(data)
         self.update_coord(data)
         self.update_media(data)
+        self.update_source(data)
+        self.update_levels(data)
+        self.update_sizes(data)
+        self.update_weights(data)
         
         return U.prefix_keys(features, 'event_')
     
@@ -251,6 +271,42 @@ class EventDataFeatures(BaseFeatures):
             return
         cnt = data[col].fillna('unknown').value_counts().to_dict()
         self.cnt_media.update(cnt)
+        
+    def update_source(self, data):
+        col = 'source'
+        if col not in data:
+            return
+        cnt = data[col].fillna('N/A').value_counts().to_dict()
+        self.cnt_source.update(cnt)
+        
+    def update_levels(self, data):
+        col = 'level'
+        if col not in data:
+            return
+        levels = data[col].fillna(0)
+        def map_to_bin(x):
+            return (0 if x <= 3 else 
+                    1 if x <= 5 else 
+                    2 if x <= 8 else
+                    3 if x <= 13 else
+                    4 if x <= 21 else
+                    5)
+        buckets = Counter([map_to_bin(level) for level in levels])
+        self.cnt_level.update(buckets)
+        
+    def update_sizes(self, data):
+        col = 'size'
+        if col not in data:
+            return
+        sizes = data[col].fillna(0).astype(int).value_counts().to_dict()
+        self.cnt_size.update(sizes)
+    
+    def update_weights(self, data):
+        col = 'weights'
+        if col not in data:
+            return
+        weights = data[col].fillna(0).astype(int).value_counts().to_dict()
+        self.cnt_weight.update(weights)
 
 # -------------------------
 # Features extraction tools
