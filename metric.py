@@ -1,7 +1,11 @@
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 import scipy
 from numba import jit 
+from sklearn.metrics import cohen_kappa_score
+
 
 @jit
 def qwk(a1, a2, max_rat=3):
@@ -57,4 +61,29 @@ def optimize_rounding_bounds(X, y):
     optimized = opt_coef['x']
     return [-np.inf] + optimized.tolist() + [np.inf]
 
+
+class PredictionsRoudner:
+    def __init__(self, train_target):
+        dist = Counter(train_target)
+        size = len(train_target)
+        for k in dist:
+            dist[k] /= size
+        self.dist = dist
+    def __call__(self, y_pred):
+        acc, bounds = 0, []
+        for i in range(3):
+            acc += self.dist[i]
+            perc = np.percentile(y_pred, acc*100)
+            bounds.append(perc)
+        rounded = pd.cut(y_pred, [-np.inf] + sorted(bounds) + [np.inf], labels=[0, 1, 2, 3])
+        return rounded.tolist(), bounds
     
+    
+def make_cappa_metric(train_target):
+    rounder = PredictionsRoudner(train_target)
+    def cappa(y_true, y_pred):
+        nonlocal rounder
+        y_pred_rounded, _ = rounder(y_pred)
+        score = cohen_kappa_score(y_true, y_pred_rounded, weights='quadratic')
+        return score
+    return cappa
