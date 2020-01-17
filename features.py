@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from collections import defaultdict, Counter, OrderedDict
 from multiprocessing import cpu_count
@@ -231,7 +232,21 @@ class EventDataFeatures(BaseFeatures):
             features['avg_coord_y'] = U.guard_false(np.mean, self.coord_y)
             features['std_coord_x'] = U.guard_false(np.std, self.coord_x)
             features['std_coord_y'] = U.guard_false(np.std, self.coord_y)
-            features['media_var'] = sum([0 if not v else 1 for v in self.cnt_media.values()])
+            
+            features['var_media'] = sum([0 if not v else 1 for v in self.cnt_media.values()])
+            features['var_source'] = sum([0 if not v else 1 for v in self.cnt_source.values()])
+            features['var_level'] = sum([0 if not v else 1 for v in self.cnt_level.values()])
+            features['avg_level'] = U.agg_dict(self.cnt_level, np.mean)
+            features['std_level'] = U.agg_dict(self.cnt_level, np.std)
+            
+            features['var_size'] = sum([0 if not v else 1 for v in self.cnt_size.values()])
+            features['avg_size'] = U.agg_dict(self.cnt_size, np.mean)
+            features['std_size'] = U.agg_dict(self.cnt_size, np.std)
+            
+            features['var_weight'] = sum([0 if not v else 1 for v in self.cnt_weight.values()])
+            features['avg_weight'] = U.agg_dict(self.cnt_weight, np.mean)
+            features['std_weight'] = U.agg_dict(self.cnt_weight, np.std)
+            
             features.update(U.prefix_keys(self.cnt_media.copy(), 'media_'))
             features.update(U.prefix_keys(self.cnt_source.copy(), 'source_'))
             features.update(U.prefix_keys(self.cnt_level.copy(), 'level_'))
@@ -270,14 +285,14 @@ class EventDataFeatures(BaseFeatures):
         if col not in data:
             return
         cnt = data[col].fillna('unknown').value_counts().to_dict()
-        self.cnt_media.update(cnt)
+        self.update_counters(cnt, self.cnt_media)
         
     def update_source(self, data):
         col = 'source'
         if col not in data:
             return
         cnt = data[col].fillna('N/A').value_counts().to_dict()
-        self.cnt_source.update(cnt)
+        self.update_counters(cnt, self.cnt_source)
         
     def update_levels(self, data):
         col = 'level'
@@ -292,22 +307,84 @@ class EventDataFeatures(BaseFeatures):
                     4 if x <= 21 else
                     5)
         buckets = Counter([map_to_bin(level) for level in levels])
-        self.cnt_level.update(buckets)
+        self.update_counters(buckets, self.cnt_level)
         
     def update_sizes(self, data):
         col = 'size'
         if col not in data:
             return
         sizes = data[col].fillna(0).astype(int).value_counts().to_dict()
-        self.cnt_size.update(sizes)
+        self.update_counters(sizes, self.cnt_size)
     
     def update_weights(self, data):
         col = 'weights'
         if col not in data:
             return
         weights = data[col].fillna(0).astype(int).value_counts().to_dict()
-        self.cnt_weight.update(weights)
+        self.update_counters(weights, self.cnt_weight)
+        
+    def update_counters(self, src, dst):
+        for k, v in src.items():
+            if k in dst:
+                dst[k] += v
 
+class FeedbackFeatures(BaseFeatures):
+    def init(self, meta):
+        self.cnt_char_feedback = U.init_dict(['dot', 'buddy', 'mom', 'cleo'])
+        self.pos_feedback = 0
+        self.neg_feedback = 0
+        self.other_feedback = 0
+    
+    def extract(self, session, info, meta):
+        features = OrderedDict()
+        
+        if info.should_include:
+            features['pos_feedback'] = self.pos_feedback
+            features['neg_feedback'] = self.neg_feedback
+            features['other_feedback'] = self.other_feedback
+            features['pos_neg_ratio'] = U.savediv(self.pos_feedback, self.neg_feedback, -1)
+            features['total_feedback'] = self.pos_feedback + self.neg_feedback + self.other_feedback
+            features.update(U.prefix_keys(self.cnt_char_feedback, 'char_'))
+        
+        data = pd.io.json.json_normalize(session.event_data.apply(json.loads))        
+        self.update_feedback(data)
+        return U.prefix_keys(features, 'fb_')
+    
+    def update_feedback(self, data):
+        if 'identifier' not in data:
+            return
+        
+        def transform_identifier(x):
+            if U.starts_with_any(x, ['Dot', 'Buddy', 'Mom', 'Cleo']):
+                parts = x.split(',')
+                if len(parts) > 1:
+                    prefix = os.path.commonprefix(parts)
+                    n = len(prefix)
+                    trimmed = [U.camel_to_snake(part[n:]) for part in parts]
+                    string = '_'.join(trimmed)
+                else:
+                    prefix = ''
+                    string = U.camel_to_snake(x.replace('_', ''))
+                result = f'{prefix}{string}'
+                return result.lower()
+            return x
+        
+        def transform_feedback(x):
+            return ('positive' if x in feedback.POSITIVE else
+                    'negative' if x in feedback.NEGATIVE else
+                    'other')
+        
+        breakpoint()
+        characters = 'dot', 'buddy', 'mom', 'cleo'
+        normalized = data['identifier'].fillna('unknown').map(transform_identifier)
+        character_identifiers = normalized.map(lambda x: U.starts_with_any(x, characters))
+        edi = pd.DataFrame({'identifier': normalized[character_identifiers]})
+        edi['character'] = edi['identifier'].map(lambda x: x.split('_')[0])
+        edi['feedback'] = edi['identifier'].map(transform_feedback)
+        for k, v in edi.groupby('character').count().todict().items():
+            if k in self.cnt_char_feedback:
+                self.cnt_char_feedback[k] += v
+                
 # -------------------------
 # Features extraction tools
 # -------------------------

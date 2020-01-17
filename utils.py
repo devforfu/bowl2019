@@ -149,3 +149,33 @@ def match_cols(cols, regex):
 
 def starts_with(cols, prefix): 
     return match_cols(cols, f'^{prefix}')
+
+
+def agg_dict(d, func):
+    return func(list(chain(*[[value]*count for count, value in d.items()])))
+
+
+def show_all(dataframe):
+    import pandas as pd
+    from IPython.display import display
+    with pd.option_context('display.max_columns', None, 'display.max_rows', None):
+        display(dataframe)
+
+        
+def camel_to_snake(name):
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+def trim_common_prefix(strings):
+    prefix = os.path.commonprefix(strings)
+    n = len(prefix)
+    trimmed = [string[n:] for string in strings]
+    return prefix, trimmed
+
+
+def starts_with_any(string, prefixes):
+    for prefix in prefixes:
+        if string.startswith(prefix):
+            return True
+    return False
