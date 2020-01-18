@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
+import feedback
 import utils as U
 from dataset import to_accuracy_group
 
@@ -70,6 +71,7 @@ class CountingFeatures(BaseFeatures, CountersMixin):
     def extract(self, session, info, meta):
         features = OrderedDict()
         if info.should_include:
+            breakpoint()
             counters = OrderedDict([
                 *self.cnt_title_event_code.items(),
                 *self.cnt_title.items(),
@@ -330,20 +332,22 @@ class EventDataFeatures(BaseFeatures):
 
 class FeedbackFeatures(BaseFeatures):
     def init(self, meta):
-        self.cnt_char_feedback = U.init_dict(['dot', 'buddy', 'mom', 'cleo'])
         self.pos_feedback = 0
         self.neg_feedback = 0
         self.other_feedback = 0
+        self.cnt_char_feedback = U.init_dict(['dot', 'buddy', 'mom', 'cleo'])
     
     def extract(self, session, info, meta):
         features = OrderedDict()
         
         if info.should_include:
+            total_feedback = self.pos_feedback + self.neg_feedback + self.other_feedback
             features['pos_feedback'] = self.pos_feedback
             features['neg_feedback'] = self.neg_feedback
             features['other_feedback'] = self.other_feedback
-            features['pos_neg_ratio'] = U.savediv(self.pos_feedback, self.neg_feedback, -1)
-            features['total_feedback'] = self.pos_feedback + self.neg_feedback + self.other_feedback
+            features['pos_neg_ratio'] = U.savediv(self.pos_feedback, self.neg_feedback, 9999)
+            features['pos_all_ratio'] = U.savediv(self.pos_feedback, total_feedback, 9999)
+            features['total_feedback'] = total_feedback
             features.update(U.prefix_keys(self.cnt_char_feedback, 'char_'))
         
         data = pd.io.json.json_normalize(session.event_data.apply(json.loads))        
@@ -374,14 +378,18 @@ class FeedbackFeatures(BaseFeatures):
                     'negative' if x in feedback.NEGATIVE else
                     'other')
         
-        breakpoint()
         characters = 'dot', 'buddy', 'mom', 'cleo'
         normalized = data['identifier'].fillna('unknown').map(transform_identifier)
         character_identifiers = normalized.map(lambda x: U.starts_with_any(x, characters))
         edi = pd.DataFrame({'identifier': normalized[character_identifiers]})
         edi['character'] = edi['identifier'].map(lambda x: x.split('_')[0])
         edi['feedback'] = edi['identifier'].map(transform_feedback)
-        for k, v in edi.groupby('character').count().todict().items():
+        
+        self.pos_feedback += len(edi.query('feedback == "positive"'))
+        self.neg_feedback += len(edi.query('feedback == "negative"'))
+        self.other_feedback += len(edi.query('feedback == "other"'))
+        
+        for k, v in edi['character'].value_counts().to_dict().items():
             if k in self.cnt_char_feedback:
                 self.cnt_char_feedback[k] += v
                 
