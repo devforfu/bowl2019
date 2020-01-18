@@ -1,0 +1,22 @@
+CLIPS = {
+    'Welcome to Lost Lagoon!': 19.0,
+    'Tree Top City - Level 1': 17.0,
+    'Ordering Spheres': 61.0,
+    'Costume Box': 61.0,
+    '12 Monkeys': 109.0,
+    'Tree Top City - Level 2': 25.0,
+    "Pirate's Tale": 80.0,
+    'Treasure Map': 156.0,
+    'Tree Top City - Level 3': 26.0,
+    'Rulers': 126.0,
+    'Magma Peak - Level 1': 20.0,
+    'Slop Problem': 60.0,
+    'Magma Peak - Level 2': 22.0,
+    'Crystal Caves - Level 1': 18.0,
+    'Balancing Act': 72.0,
+    'Lifting Heavy Things': 118.0,
+    'Crystal Caves - Level 2': 24.0,
+    'Honey Cake': 142.0,
+    'Crystal Caves - Level 3': 19.0,
+    'Heavy, Heavier, Heaviest': 61.0
+}

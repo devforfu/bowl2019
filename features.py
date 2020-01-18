@@ -3,11 +3,13 @@ import os
 import re
 from collections import defaultdict, Counter, OrderedDict
 from multiprocessing import cpu_count
+from operator import itemgetter
 
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
+import duration
 import feedback
 import utils as U
 from dataset import to_accuracy_group
@@ -66,23 +68,29 @@ class CountingFeatures(BaseFeatures, CountersMixin):
         self.cnt_event_code = U.init_dict(meta.event_code)
         self.cnt_event_id = U.init_dict(meta.event_id)
         self.cnt_activities = U.init_dict(meta.type)
+        self.cnt_worlds = U.init_dict(meta.world)
         self.last_activity = None
         
     def extract(self, session, info, meta):
         features = OrderedDict()
         if info.should_include:
-            breakpoint()
             counters = OrderedDict([
                 *self.cnt_title_event_code.items(),
                 *self.cnt_title.items(),
                 *self.cnt_event_code.items(),
                 *self.cnt_event_id.items(),
-                *self.cnt_activities.items()])
+                *self.cnt_activities.items(),
+                *self.cnt_worlds.items()])
             features.update(counters)
+            features['most_freq_title'] = max(self.cnt_title.items(), key=itemgetter(1))[0]
+            features['least_freq_title'] = min(self.cnt_title.items(), key=itemgetter(1))[0]
+            features['most_freq_world'] = max(self.cnt_worlds.items(), key=itemgetter(1))[0]
+            features['least_freq_world'] = min(self.cnt_worlds.items(), key=itemgetter(1))[0]
         self.update_counters(self.cnt_title_event_code, session, 'title_event_code')
         self.update_counters(self.cnt_title, session, 'title')
         self.update_counters(self.cnt_event_code, session, 'event_code')
         self.update_counters(self.cnt_event_id, session, 'event_id')
+        self.update_counters(self.cnt_worlds, session, 'world')
         if self.last_activity is None or self.last_activity != info.session_type:
             self.cnt_activities[info.session_type] += 1
             self.last_activity = info.session_type
@@ -96,6 +104,7 @@ class PerformanceFeatures(BaseFeatures):
         self.acc_incorrect_attempts = 0
         self.acc_actions = 0
         self.durations = []
+        self.clip_durations = []
         self.accuracy_groups = U.init_dict([0, 1, 2, 3])
         self.last_accuracy_title = U.init_dict([f'acc_{t}' for t in meta.title], -1)
         self.n_rows = 0
@@ -125,7 +134,15 @@ class PerformanceFeatures(BaseFeatures):
             features['acc_actions'] = self.acc_actions
             
             features['duration_mean'] = np.mean(self.durations) if self.durations else 0
+            features['total_duration'] = sum(self.durations)
             self.durations.append(info.duration_seconds)
+        
+            features['clip_duration_mean'] = U.guard_false(np.mean, self.clip_durations)
+            features['clip_total_duration'] = sum(self.clip_durations)
+            self.clip_durations.append(duration.CLIPS.get(info.session_title, 0))
+            
+            features['clip_ratio'] = U.savediv(
+                features['clip_total_duration'], features['total_duration'])
             
             self.n_rows += 1
             
@@ -179,6 +196,29 @@ class TimestampFeatures(BaseFeatures, CountersMixin):
         self.update_counters(self.cnt_hour, session, 'ts_Hour')
         self.update_counters(self.cnt_minute, session, 'ts_Minute')
         
+        return U.prefix_keys(features, 'ts_')
+    
+class TimestampFeatures2(BaseFeatures):
+    def init(self, meta, **params):
+        self.months = []
+        self.dows = []
+        self.doms = []
+        self.hours = []
+    
+    def extract(self, session, info, meta):
+        features = OrderedDict()
+        
+        if info.should_include:
+            for attr in ('months', 'dows', 'doms', 'hours'):
+                for func in (min, max, np.mean, np.std):
+                    arr = getattr(self, attr)
+                    features[f'{func.__name__}_{attr}'] = U.guard_false(func, arr)
+                    
+        self.months.extend(session['ts_Month'].tolist())
+        self.dows.extend(session['ts_Dayofweek'].tolist())
+        self.doms.extend(session['ts_Day'].tolist())
+        self.hours.extend(session['ts_Hour'].tolist())
+
         return U.prefix_keys(features, 'ts_')
 
 class VarietyFeatures(BaseFeatures, CountersMixin):
