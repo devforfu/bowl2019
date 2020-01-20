@@ -69,9 +69,17 @@ class CountingFeatures(BaseFeatures, CountersMixin):
         self.cnt_event_id = U.init_dict(meta.event_id)
         self.cnt_activities = U.init_dict(meta.type)
         self.cnt_worlds = U.init_dict(meta.world)
+        self.cnt_types = U.init_dict(meta.type)
+        self.cnt_title_worlds = U.init_dict(meta.title_world)
+        self.cnt_title_types = U.init_dict(meta.title_type)
+        self.cnt_world_types = U.init_dict(meta.world_type)
         self.last_activity = None
         
     def extract(self, session, info, meta):
+        
+        def most_freq(cnt): return max(cnt.items(), key=itemgetter(1))[0]
+        def least_freq(cnt): return min(cnt.items(), key=itemgetter(1))[0]
+        
         features = OrderedDict()
         if info.should_include:
             counters = OrderedDict([
@@ -80,20 +88,40 @@ class CountingFeatures(BaseFeatures, CountersMixin):
                 *self.cnt_event_code.items(),
                 *self.cnt_event_id.items(),
                 *self.cnt_activities.items(),
-                *self.cnt_worlds.items()])
+                *self.cnt_worlds.items(),
+                *self.cnt_types.items(),
+                *self.cnt_title_worlds.items(),
+                *self.cnt_title_types.items(),
+                *self.cnt_world_types.items()
+            ])
             features.update(counters)
-            features['most_freq_title'] = max(self.cnt_title.items(), key=itemgetter(1))[0]
-            features['least_freq_title'] = min(self.cnt_title.items(), key=itemgetter(1))[0]
-            features['most_freq_world'] = max(self.cnt_worlds.items(), key=itemgetter(1))[0]
-            features['least_freq_world'] = min(self.cnt_worlds.items(), key=itemgetter(1))[0]
+            features['most_freq_title'] = most_freq(self.cnt_title)
+            features['least_freq_title'] = least_freq(self.cnt_title)
+            features['most_freq_world'] = most_freq(self.cnt_worlds)
+            features['least_freq_world'] = least_freq(self.cnt_worlds)
+            features['most_freq_type'] = most_freq(self.cnt_types)
+            features['least_freq_type'] = least_freq(self.cnt_types)
+            features['most_freq_title_world'] = most_freq(self.cnt_title_worlds)
+            features['least_freq_title_world'] = least_freq(self.cnt_title_worlds)
+            features['most_freq_title_type'] = most_freq(self.cnt_title_types)
+            features['least_freq_title_type'] = least_freq(self.cnt_title_types)
+            features['most_freq_world_type'] = most_freq(self.cnt_world_types)
+            features['least_freq_world_type'] = least_freq(self.cnt_world_types)
+            
         self.update_counters(self.cnt_title_event_code, session, 'title_event_code')
         self.update_counters(self.cnt_title, session, 'title')
         self.update_counters(self.cnt_event_code, session, 'event_code')
         self.update_counters(self.cnt_event_id, session, 'event_id')
         self.update_counters(self.cnt_worlds, session, 'world')
+        self.update_counters(self.cnt_types, session, 'type')
+        self.update_counters(self.cnt_title_worlds, session, 'title_world')
+        self.update_counters(self.cnt_title_types, session, 'title_type')
+        self.update_counters(self.cnt_world_types, session, 'world_type')
+        
         if self.last_activity is None or self.last_activity != info.session_type:
             self.cnt_activities[info.session_type] += 1
             self.last_activity = info.session_type
+            
         return U.prefix_keys(features, 'cnt_')
     
 class PerformanceFeatures(BaseFeatures):
@@ -111,7 +139,7 @@ class PerformanceFeatures(BaseFeatures):
     
     def extract(self, session, info, meta):
         features = OrderedDict()
-        
+    
         if info.should_include:
             features['acc_attempts_pos'] = self.acc_correct_attempts
             features['acc_attempts_neg'] = self.acc_incorrect_attempts
@@ -133,6 +161,8 @@ class PerformanceFeatures(BaseFeatures):
 
             features['acc_actions'] = self.acc_actions
             
+            event_count = session['event_count'].iloc[-1]
+                
             features['duration_mean'] = np.mean(self.durations) if self.durations else 0
             features['total_duration'] = sum(self.durations)
             self.durations.append(info.duration_seconds)
@@ -245,7 +275,7 @@ class VarietyFeatures(BaseFeatures, CountersMixin):
         return U.prefix_keys(features, 'var_')
     
 class EventDataFeatures(BaseFeatures):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.rounds = []
         self.max_round = 0
         self.coord_x = []
@@ -265,30 +295,11 @@ class EventDataFeatures(BaseFeatures):
         features = OrderedDict()
         
         if info.should_include:
-            features['max_round'] = self.max_round
-            features['avg_round'] = U.guard_false(np.mean, self.rounds)
-            features['std_round'] = U.guard_false(np.std, self.rounds)
-            features['n_coord_x'] = len(self.coord_x)
-            features['n_coord_y'] = len(self.coord_y)
-            features['avg_coord_x'] = U.guard_false(np.mean, self.coord_x)
-            features['avg_coord_y'] = U.guard_false(np.mean, self.coord_y)
-            features['std_coord_x'] = U.guard_false(np.std, self.coord_x)
-            features['std_coord_y'] = U.guard_false(np.std, self.coord_y)
-            
             features['var_media'] = sum([0 if not v else 1 for v in self.cnt_media.values()])
             features['var_source'] = sum([0 if not v else 1 for v in self.cnt_source.values()])
             features['var_level'] = sum([0 if not v else 1 for v in self.cnt_level.values()])
-            features['avg_level'] = U.agg_dict(self.cnt_level, np.mean)
-            features['std_level'] = U.agg_dict(self.cnt_level, np.std)
-            
-            features['var_size'] = sum([0 if not v else 1 for v in self.cnt_size.values()])
-            features['avg_size'] = U.agg_dict(self.cnt_size, np.mean)
-            features['std_size'] = U.agg_dict(self.cnt_size, np.std)
-            
             features['var_weight'] = sum([0 if not v else 1 for v in self.cnt_weight.values()])
-            features['avg_weight'] = U.agg_dict(self.cnt_weight, np.mean)
-            features['std_weight'] = U.agg_dict(self.cnt_weight, np.std)
-            
+            features['var_size'] = sum([0 if not v else 1 for v in self.cnt_size.values()])
             features.update(U.prefix_keys(self.cnt_media.copy(), 'media_'))
             features.update(U.prefix_keys(self.cnt_source.copy(), 'source_'))
             features.update(U.prefix_keys(self.cnt_level.copy(), 'level_'))
@@ -371,7 +382,7 @@ class EventDataFeatures(BaseFeatures):
                 dst[k] += v
 
 class FeedbackFeatures(BaseFeatures):
-    def init(self, meta):
+    def init(self, meta, **params):
         self.pos_feedback = 0
         self.neg_feedback = 0
         self.other_feedback = 0
@@ -432,6 +443,20 @@ class FeedbackFeatures(BaseFeatures):
         for k, v in edi['character'].value_counts().to_dict().items():
             if k in self.cnt_char_feedback:
                 self.cnt_char_feedback[k] += v
+
+class ZFeatures(BaseFeatures):
+    def init(self, meta, **params):
+        self.ref_ts = meta['ref_ts']
+    
+    def extract(self, session, info, meta):
+        features = OrderedDict()
+        
+        if info.should_include:
+            pass
+            
+        breakpoint()
+        delta = session['timestamp'].diff().seconds.fillna(0)
+        return features
                 
 # -------------------------
 # Features extraction tools

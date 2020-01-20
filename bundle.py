@@ -41,6 +41,9 @@ def bounds():
 def encoders():
     return load('encoders')
 
+def target_encoders():
+    return load('target_encoders')
+
 def package(folder):
     U.log('Packaging training results into dataset.')
     for filename in os.listdir(root):

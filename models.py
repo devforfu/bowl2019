@@ -108,8 +108,6 @@ MODEL_CONFIG = dict(
             gamma=0.25,
             objective='reg:squarederror',
             colsample_bytree=0.8,
-            gpu_id=0,
-            tree_method='gpu_hist'
         ),
         fit_params=dict(
             early_stopping_rounds=100,
@@ -120,7 +118,7 @@ MODEL_CONFIG = dict(
 
 def get_default_config(name):
     assert name in MODEL_CONFIG, f'Config entry is not found: {name}'
-    return MODEL_CONFIG[name]
+    return MODEL_CONFIG[name].copy()
 
 def get_model_class(name):
     if name.startswith('lightgbm'): return LightGBM

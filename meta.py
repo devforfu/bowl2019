@@ -11,9 +11,13 @@ def compute_meta_data(dataset, *datasets):
     uniq['event_id'] = U.unique(datasets, column='event_id')
     uniq['world'] = U.unique(datasets, column='world')
     uniq['type'] = U.unique(datasets, column='type')
+    uniq['title_world'] = U.unique(datasets, column='title_world')
+    uniq['title_type'] = U.unique(datasets, column='title_type')
+    uniq['world_type'] = U.unique(datasets, column='world_type')
     asm_datasets = [ds.query('type == "Assessment"') for ds in datasets]
     uniq['assessment_titles'] = U.unique(asm_datasets, column='title')
     win_codes = {t: 4100 for t in uniq['title']}
     win_codes['Bird Measurer (Assessment)'] = 4110
-    meta = {'win_codes': win_codes, **uniq}
+    ref_ts = dataset['timestamp'].min()
+    meta = {'win_codes': win_codes, 'ref_ts': ref_ts, **uniq}
     return U.named_tuple('Meta', **meta)
